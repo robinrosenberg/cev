@@ -1,0 +1,71 @@
+#!/bin/bash -e
+
+#
+# Copyright (C) 2004 Robin Rosenberg.
+#
+# This program is available under the terms of the GNU Public License.
+#
+
+while [ "${1:0:1}" = "-" ]
+do
+	case "$1" in
+	--I)
+	    INC="$INC $2"
+	    shift 2;
+	    ;;
+	--I*)
+	    INC="$INC ${1:3}"
+	    shift 1;
+	    ;;
+	-*) 
+	    FLAGS="$FLAGS $1";
+	    shift 1
+	    ;;
+	esac
+done
+
+mkdir -p $HOME/.cev
+if [ ! -f $HOME/.cev/stdinc.h ]
+then
+    cat >$HOME/.cev/stdinc.h <<EOF
+// Do not forget to re-precompile this
+// file if you modify it or delete the
+// .pch file
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+EOF
+    gcc $HOME/.cev/stdinc.h || echo "W:Could not create precompiled heaader file"
+fi
+TMP=${TMP:-/tmp}
+tmpf=$TMP/cev$$.c
+tmpx=$TMP/cev$$
+trap "rm -f $tmpf $tmpfx" 0
+cat >$tmpf <<EOF
+#include "$HOME/.cev/stdinc.h"
+EOF
+for i in $INC
+do
+    echo >>$tmpf "#include <$i>"
+done
+cat >>$tmpf <<EOF
+EOF
+
+while [ $# -gt 1 ]
+do
+    echo >>$tmpf "$1"
+    shift 1
+done
+
+cat >>$tmpf <<EOF
+main(int argc,char **argv)
+{
+	$1;
+	return 0;
+}
+EOF
+gcc -o $tmpx $tmpf $FLAGS && $tmpx ||grep -n . $tmpf
+rm -f $tmpx

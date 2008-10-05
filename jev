@@ -1,0 +1,60 @@
+#!/bin/bash -e
+
+#
+# Copyright (C) 2004 Robin Rosenberg.
+#
+# This program is available under the terms of the GNU Public License.
+#
+
+while [ "${1:0:1}" = "-" ]
+do
+	case "$1" in
+	-*) 
+	    FLAGS="$FLAGS $1";
+	    shift 1
+	    ;;
+	esac
+done
+
+mkdir -p $HOME/.jev
+if [ ! -f $HOME/.jev/stdimport ]
+then
+    cat >$HOME/.jev/stdimport <<EOF
+import java.io.*;
+import java.util.*;
+import java.awt.*;
+import javax.swing.*;
+import java.net.*;
+EOF
+fi
+TMP=${TMP:-/tmp}
+class=jev$$
+tmpf=$TMP/${class}.java
+tmpx="$TMP/${class}.class $TMP/${class}\$*.class"
+trap "cat $tmpf;rm -f $tmpf $tmpfx" 0
+cat >$tmpf <$HOME/.jev/stdimport
+cat >>$tmpf <<EOF
+public class $class {
+EOF
+
+while [ $# -gt 1 ]
+do
+    echo >>$tmpf "$1"
+    shift 1
+done
+
+cat >>$tmpf <<EOF
+public static void main(String[] args) throws Throwable
+{
+	$1;
+}
+}
+EOF
+javac -d $TMP $tmpf
+time java -cp $TMP $class
+if [ ! -f $TMP/${class}.class  ]
+then
+    cat $tmpf
+fi
+
+rm -f $(echo $tmpx)
