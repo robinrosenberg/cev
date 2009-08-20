@@ -16,6 +16,8 @@ do
 	esac
 done
 
+if [ "$OS" = "Windows_NT" ];then sep=";";else sep=":";fi
+
 mkdir -p $HOME/.jev
 if [ ! -f $HOME/.jev/stdimport ]
 then
@@ -25,8 +27,18 @@ import java.util.*;
 import java.awt.*;
 import javax.swing.*;
 import java.net.*;
+import java.nio.*;
 EOF
 fi
+cp=
+if [ -f $HOME/.jev/stdclasspath ]
+then
+    while read p
+    do
+	cp="$cp${sep}$p"
+    done < $HOME/.jev/stdclasspath
+fi
+
 TMP=${TMP:-/tmp}
 class=jev$$
 tmpf=$TMP/${class}.java
@@ -50,8 +62,8 @@ public static void main(String[] args) throws Throwable
 }
 }
 EOF
-javac -d $TMP $tmpf
-time java -cp $TMP $class
+javac -d $TMP -cp "$cp$sep$TMP" $tmpf
+time java -cp "$cp$sep$TMP" $class
 if [ ! -f $TMP/${class}.class  ]
 then
     cat $tmpf
